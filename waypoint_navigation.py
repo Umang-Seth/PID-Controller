@@ -40,8 +40,8 @@ class Edrone():
 		self.drone_position = [0.0,0.0,0.0]	
 
 		# [x_setpoint, y_setpoint, z_setpoint]
-		self.setpoint = [10,-10,20] # whycon marker at the position of the dummy given in the scene. Make the whycon marker associated with position_to_hold dummy renderable and make changes accordingly
-
+		self.setpoint = [0,0,26] # whycon marker at the position of the dummy given in the scene. Make the whycon marker associated with position_to_hold dummy renderable and make changes accordingly
+		
 
 		#Declaring a cmd of message type edrone_msgs and initializing values
 		self.cmd = edrone_msgs()
@@ -71,7 +71,7 @@ class Edrone():
 
 		self.min_values = 1000
 		self.max_values = 2000
-
+		self.flag=0
 
 		# Hint : Add variables for storing previous errors in each axis, like self.prev_values = [0,0,0] where corresponds to [pitch, roll, throttle]		#		 Add variables for limiting the values like self.max_values = [2000,2000,2000] corresponding to [roll, pitch, throttle]
 		#													self.min_values = [1000,1000,1000] corresponding to [pitch, roll, throttle]
@@ -80,7 +80,6 @@ class Edrone():
 
 		# # This is the sample time in which you need to run pid. Choose any time which you seem fit. Remember the stimulation step time is 50 ms
 		# self.sample_time = 0.060 # in seconds
-
 
 
 
@@ -110,12 +109,11 @@ class Edrone():
 
 
 
-
+		self.flag=0
 		#------------------------------------------------------------------------------------------------------------
 		print("Run arm")
 		self.arm() # ARMING THE DRONE
 		print("Armed")
-		print(self.cmd)
 
 	# Disarming condition of the drone
 	def disarm(self):
@@ -178,6 +176,21 @@ class Edrone():
 		self.Ki[0] = roll.Ki * 0.008
 		self.Kd[0] = roll.Kd * 0.3
 
+	def waypoints(self,flag):
+		switcher = {
+        0: [0,0,23],
+        1: [2,0,23],
+        2: [2,2,23],
+		3: [-2,2,23],
+		4: [-2,-2,23],
+		5: [2,-2,23],
+		6: [2,0,23],
+		7: [0,0,23],
+    	}
+		return switcher.get(flag, [0,0,23])
+		
+
+		
 	#----------------------------------------------------------------------------------------------------------------------
 
 
@@ -194,6 +207,11 @@ class Edrone():
 	#																														self.cmd.rcPitch = self.max_values[1]
 	#	7. Update previous errors.eg: self.prev_error[1] = error[1] where index 1 corresponds to that of pitch (eg)
 	#	8. Add error_sum
+		
+
+		self.setpoint = e_drone.waypoints(self.flag)
+		print("Waypoint",self.flag,self.setpoint)
+
 		self.error[2] = - (self.setpoint[2] - self.drone_position[2])
 		self.error[0] = self.setpoint[0] - self.drone_position[0]
 		self.error[1] = self.setpoint[1] - self.drone_position[1]
@@ -251,13 +269,19 @@ class Edrone():
 
 	#------------------------------------------------------------------------------------------------------------------------
 
+		if -0.1<self.error[0]<0.1 and -0.1<self.error[1]<0.1 and -0.18<self.error[2]<0.18:
+			print("Checking")
+			self.flag+=1
+			self.setpoint = e_drone.waypoints(self.flag)
+			
+			# print("Waypoint",flag,self.setpoint)
 
 		
 		self.command_pub.publish(self.cmd)
 		self.alt_error_pub.publish(self.error[2])
 		self.pitch_error_pub.publish(self.error[1])
 		self.roll_error_pub.publish(self.error[0])
-		print(self.cmd)
+		
 		
 
 
